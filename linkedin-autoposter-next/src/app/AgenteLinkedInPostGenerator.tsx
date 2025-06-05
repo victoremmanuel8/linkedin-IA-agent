@@ -4,21 +4,23 @@ import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import styled, { keyframes } from "styled-components";
 
+// URL do backend (ajuste se necessário)
 const BACKEND_URL = "http://localhost:5000";
 
-// Animação de loading (spin)
+// Animação de loading (spin) para o ícone
 const spin = keyframes`
-  0% { transform: rotate(0deg);}
-  100% { transform: rotate(360deg);}
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 `;
 
-// Containers
+// Containers e elementos de layout
 const PageWrapper = styled.div`
   min-height: 100vh;
   background: linear-gradient(to bottom right, #1a202c, #2d3748);
   padding: 2rem;
   display: flex;
   justify-content: center;
+  align-items: flex-start; /* Alinha o conteúdo ao topo */
 `;
 
 const Content = styled.div`
@@ -34,12 +36,13 @@ const Title = styled.h1`
   font-weight: 700;
   color: #fff;
   text-align: center;
+  margin-bottom: 1.5rem;
 `;
 
 const Card = styled.div`
   background-color: #2d3748;
   border-radius: 0.5rem;
-  box-shadow: 0 0 10px rgb(0 0 0 / 0.7);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
   padding: 1rem;
 `;
 
@@ -133,15 +136,17 @@ const ImgPreview = styled.img`
   width: 100%;
   height: auto;
   border-radius: 0.5rem;
+  margin-top: 1rem; /* Adiciona um pouco de espaço acima da imagem */
 `;
 
 const AgenteLinkedInPostGenerator = () => {
   const [topico, setTopico] = useState("");
   const [resultadosBusca, setResultadosBusca] = useState("");
   const [planoPost, setPlanoPost] = useState("");
+  const [promtImage, setPrompt] = useState("");
   const [rascunhoPost, setRascunhoPost] = useState("");
   const [textoRevisado, setTextoRevisado] = useState("");
-  // const [imagemGeradaUrl, setImagemGeradaUrl] = useState("");
+  const [imagemGeradaUrl, setImagemGeradaUrl] = useState(""); // Descomentado
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -155,11 +160,12 @@ const AgenteLinkedInPostGenerator = () => {
     setResultadosBusca("");
     setPlanoPost("");
     setRascunhoPost("");
+    setPrompt("");
     setTextoRevisado("");
-    // setImagemGeradaUrl("");
+    setImagemGeradaUrl(""); // Limpa a URL da imagem anterior
 
     try {
-      // Buscar Lançamentos
+      // 1. Buscar Lançamentos
       const buscaResponse = await fetch(
         `${BACKEND_URL}/buscar?topico=${encodeURIComponent(topico)}`
       );
@@ -168,7 +174,7 @@ const AgenteLinkedInPostGenerator = () => {
       const buscaData = await buscaResponse.json();
       setResultadosBusca(buscaData.resultado_busca);
 
-      // Planejar Post
+      // 2. Planejar Post
       const planoResponse = await fetch(
         `${BACKEND_URL}/planejar?topico=${encodeURIComponent(
           topico
@@ -179,7 +185,7 @@ const AgenteLinkedInPostGenerator = () => {
       const planoData = await planoResponse.json();
       setPlanoPost(planoData.plano_post);
 
-      // Redigir Rascunho
+      // 3. Redigir Rascunho
       const rascunhoResponse = await fetch(
         `${BACKEND_URL}/redigir?topico=${encodeURIComponent(
           topico
@@ -190,38 +196,41 @@ const AgenteLinkedInPostGenerator = () => {
       const rascunhoData = await rascunhoResponse.json();
       setRascunhoPost(rascunhoData.rascunho_post);
 
-      // Gerar Imagem
-      // const gerarImagem = async (topico: string, plano: string) => {
-      //   try {
-      //     const imagemResponse = await fetch(`${BACKEND_URL}/gerar_imagem`, {
-      //       method: "POST",
-      //       headers: {
-      //         "Content-Type": "application/json",
-      //       },
-      //       body: JSON.stringify({
-      //         rascunho_do_post_imagem: `Crie uma imagem para o seguinte conteúdo de post sobre ${topico}: ${plano}`,
-      //       }),
-      //     });
+      //3.5 prompt da imagem
+      const promtImage = await fetch(
+        `${BACKEND_URL}/prompt?topico=${encodeURIComponent(
+          topico
+        )}&plano=${encodeURIComponent(planoData.plano_post)}`
+      );
+      if (!promtImage.ok)
+        throw new Error(`Erro na redação: ${promtImage.status}`);
+      const promptData = await promtImage.json();
+      setRascunhoPost(promptData.rascunho_post);
 
-      //     if (!imagemResponse.ok) {
-      //       throw new Error(
-      //         `Erro na geração da imagem: ${imagemResponse.status}`
-      //       );
-      //     }
+      // 4. Gerar Imagem
+      // const imagemResponse = await fetch(`${BACKEND_URL}/gerar_imagem`, {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   body: JSON.stringify({
+      //     rascunho_do_post_imagem: `Crie uma imagem para o seguinte conteúdo de post sobre ${topico}: ${planoData.plano_post}`,
+      //   }),
+      // });
 
-      //     const imagemData = await imagemResponse.json();
+      // if (!imagemResponse.ok) {
+      //   throw new Error(`Erro na geração da imagem: ${imagemResponse.status}`);
+      // }
 
-      //     if (imagemData.imagem_url) {
-      //       setImagemGeradaUrl(imagemData.imagem_url);
-      //     } else {
-      //       console.warn("Imagem não gerada:", imagemData.text);
-      //     }
-      //   } catch (error) {
-      //     console.error("Erro ao gerar imagem:");
-      //   }
-      // };
+      // const imagemData = await imagemResponse.json();
 
-      // Revisar Texto
+      // if (imagemData.imagem_url) {
+      //   setImagemGeradaUrl(imagemData.imagem_url);
+      // } else {
+      //   console.warn("Imagem não gerada:", imagemData.text);
+      // }
+
+      // 5. Revisar Texto
       const revisaoResponse = await fetch(
         `${BACKEND_URL}/revisar?topico=${encodeURIComponent(
           topico
@@ -264,33 +273,6 @@ const AgenteLinkedInPostGenerator = () => {
           </Button>
         </Card>
 
-        {/* {resultadosBusca && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Resultados da Busca</CardTitle>
-            </CardHeader>
-            <Textarea readOnly value={resultadosBusca} />
-          </Card>
-        )} */}
-
-        {/* {planoPost && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Plano do Post</CardTitle>
-            </CardHeader>
-            <Textarea readOnly value={planoPost} />
-          </Card>
-        )} */}
-
-        {/* {rascunhoPost && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Rascunho do Post</CardTitle>
-            </CardHeader>
-            <Textarea readOnly value={rascunhoPost} />
-          </Card>
-        )} */}
-
         {textoRevisado && (
           <Card>
             <CardHeader>
@@ -300,17 +282,26 @@ const AgenteLinkedInPostGenerator = () => {
           </Card>
         )}
 
-        {/* {imagemGeradaUrl && (
+        {promtImage && (
           <Card>
             <CardHeader>
-              <CardTitle>Imagem Gerada</CardTitle>
+              <CardTitle>Conteúdo do prompt</CardTitle>
             </CardHeader>
-            <ImgPreview src={imagemGeradaUrl} alt="Imagem gerada" />
+            <Textarea readOnly value={promtImage} />
           </Card>
-        )} */}
+        )}
       </Content>
     </PageWrapper>
   );
 };
 
 export default AgenteLinkedInPostGenerator;
+
+// {imagemGeradaUrl && (
+//   <Card>
+//     <CardHeader>
+//       <CardTitle>Imagem Gerada</CardTitle>
+//     </CardHeader>
+//     <ImgPreview src={imagemGeradaUrl} alt="Imagem gerada" />
+//   </Card>
+// )}
